@@ -57,8 +57,8 @@ let from_file filename =
   match Fpath.split_ext filename with
   | _, ".smtml" -> Smtml.from_file filename
   | _, ".smt2" -> Smtlib.from_file filename
-  | fname, ext -> (
+  | fname, _ -> (
     (* FIXME: I don't like this *)
     match Fpath.to_string fname with
     | "-" -> Smtml.from_file filename
-    | _ -> Fmt.failwith "Unsupported script type with extension '%s'" ext )
+    | _ -> Smtlib.from_file filename)
