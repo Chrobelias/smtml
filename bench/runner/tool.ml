@@ -88,7 +88,7 @@ let fork_and_run ?timeout ?from_file prover file =
     Unix.close stderr_write;
     let stdout = with_ic stdout_read In_channel.input_all in
     let stderr = with_ic stderr_read In_channel.input_all in
-    let waited_pid, status, usage = ExtUnix.Specific.wait4 [] pid in
+    let waited_pid, status, usage = 0, Unix.WEXITED 0, "fixme" in
     assert (pid = waited_pid);
     (status, stdout, stderr, usage)
   end
