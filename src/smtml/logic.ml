@@ -19,6 +19,7 @@ type t =
   | QF_NRA
   | QF_RDL
   | QF_S
+  | QF_SLIA
   | QF_UF
   | QF_UFBV
   | QF_UFIDL
@@ -49,6 +50,7 @@ let pp fmt = function
   | QF_NRA -> Fmt.string fmt "QF_NRA"
   | QF_RDL -> Fmt.string fmt "QF_RDL"
   | QF_S -> Fmt.string fmt "QF_S"
+  | QF_SLIA -> Fmt.string fmt "QF_SLIA"
   | QF_UF -> Fmt.string fmt "QF_UF"
   | QF_UFBV -> Fmt.string fmt "QF_UFBV"
   | QF_UFIDL -> Fmt.string fmt "QF_UFIDL"
@@ -80,6 +82,7 @@ let of_string logic =
   | "QF_NRA" -> Ok QF_NRA
   | "QF_RDL" -> Ok QF_RDL
   | "QF_S" -> Ok QF_S
+  | "QF_SLIA" -> Ok QF_SLIA
   | "QF_UF" -> Ok QF_UF
   | "QF_UFBV" -> Ok QF_UFBV
   | "QF_UFIDL" -> Ok QF_UFIDL

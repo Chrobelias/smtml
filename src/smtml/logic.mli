@@ -38,6 +38,7 @@ type t =
   | QF_NRA  (** Quantifier-free non-linear real arithmetic. *)
   | QF_RDL  (** Quantifier-free real difference logic. *)
   | QF_S  (** Quantifier-free string theory. *)
+  | QF_SLIA  (** Quantifier-free string and linear integer arithmetic theory. *)
   | QF_UF  (** Quantifier-free uninterpreted functions. *)
   | QF_UFBV  (** Quantifier-free uninterpreted functions with bitvectors. *)
   | QF_UFIDL
