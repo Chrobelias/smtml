@@ -7,8 +7,8 @@ let files_to_run d =
   | Ok results -> results
   | Error (`Msg err) -> Fmt.failwith "%s" err
 
-let parse_status =
-  let re = Dune_re.(compile @@ Perl.re {|^(sat|unsat|unknown)|}) in
+let parse_status _ = assert false
+  (*let re = Dune_re.(compile @@ Perl.re {|^(sat|unsat|unknown)|}) in
   fun stdout ->
     match Dune_re.exec_opt re stdout with
     | None -> `Unknown
@@ -17,7 +17,7 @@ let parse_status =
       | "sat" -> `Sat
       | "unsat" -> `Unsat
       | "unknown" -> `Unknown
-      | _ -> assert false )
+      | _ -> assert false )*)
 
 let pp_status fmt = function
   | `Sat -> Fmt.string fmt "sat"
