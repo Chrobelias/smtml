@@ -336,7 +336,7 @@ let negate_relop (hte : t) : t =
 let unop ty op hte =
   match (op, view hte) with
   | Ty.Unop.(Regexp_loop _ | Regexp_star), _ -> raw_unop ty op hte
-  | _, Val v -> value (Eval.unop ty op v)
+  (*| _, Val v -> value (Eval.unop ty op v)*)
   | Not, Unop (_, Not, hte') -> hte'
   | Not, Relop (Ty_fp _, _, _, _) -> raw_unop ty op hte
   | Not, Relop (_, _, _, _) -> negate_relop hte
@@ -353,7 +353,7 @@ let raw_binop ty op hte1 hte2 = make (Binop (ty, op, hte1, hte2)) [@@inline]
 let rec binop ty op hte1 hte2 =
   match (op, view hte1, view hte2) with
   | Ty.Binop.(String_in_re | Regexp_range), _, _ -> raw_binop ty op hte1 hte2
-  | op, Val v1, Val v2 -> value (Eval.binop ty op v1 v2)
+  (*| op, Val v1, Val v2 -> value (Eval.binop ty op v1 v2)*)
   | Sub, Ptr { base = b1; offset = os1 }, Ptr { base = b2; offset = os2 } ->
     if Bitvector.equal b1 b2 then binop ty Sub os1 os2
     else raw_binop ty op hte1 hte2
@@ -381,15 +381,15 @@ let rec binop ty op hte1 hte2 =
     hte1
   | (Add | Or), _, Val (Bitv bv) when Bitvector.eqz bv -> hte1
   | (And | Mul), _, Val (Bitv bv) when Bitvector.eqz bv -> hte2
-  | Add, Binop (ty, Add, x, { node = Val v1; _ }), Val v2 ->
+  (*| Add, Binop (ty, Add, x, { node = Val v1; _ }), Val v2 ->
     let v = value (Eval.binop ty Add v1 v2) in
     raw_binop ty Add x v
   | Sub, Binop (ty, Sub, x, { node = Val v1; _ }), Val v2 ->
     let v = value (Eval.binop ty Add v1 v2) in
-    raw_binop ty Sub x v
+    raw_binop ty Sub x v*)
   | Mul, Val (Bitv bv), _ when Bitvector.eq_one bv -> hte2
   | Mul, _, Val (Bitv bv) when Bitvector.eq_one bv -> hte1
-  | Mul, Binop (ty, Mul, x, { node = Val v1; _ }), Val v2 ->
+  (*| Mul, Binop (ty, Mul, x, { node = Val v1; _ }), Val v2 ->
     let v = value (Eval.binop ty Mul v1 v2) in
     raw_binop ty Mul x v
   | Add, Val v1, Binop (ty, Add, x, { node = Val v2; _ }) ->
@@ -397,7 +397,7 @@ let rec binop ty op hte1 hte2 =
     raw_binop ty Add v x
   | Mul, Val v1, Binop (ty, Mul, x, { node = Val v2; _ }) ->
     let v = value (Eval.binop ty Mul v1 v2) in
-    raw_binop ty Mul v x
+    raw_binop ty Mul v x*)
   | At, List es, Val (Int n) ->
     (* TODO: use another datastructure? *)
     begin match List.nth_opt es n with None -> assert false | Some v -> v
@@ -416,7 +416,7 @@ let triop ty op e1 e2 e3 =
   match (op, view e1, view e2, view e3) with
   | Ty.Triop.Ite, Val True, _, _ -> e2
   | Ite, Val False, _, _ -> e3
-  | op, Val v1, Val v2, Val v3 -> value (Eval.triop ty op v1 v2 v3)
+  (*| op, Val v1, Val v2, Val v3 -> value (Eval.triop ty op v1 v2 v3)*)
   | Ite, _, Triop (_, Ite, c2, r1, r2), Triop (_, Ite, _, _, _) ->
     let else_ = raw_triop ty Ite e1 r2 e3 in
     let cond = binop Ty_bool And e1 c2 in
@@ -437,7 +437,7 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
   match (op, view hte1, view hte2) with
   | (Eq | Le | Ge | LeU | GeU), _, _ when can_be_shortcuted -> value True
   | (Ne | Lt | Gt | LtU | GtU), _, _ when can_be_shortcuted -> value False
-  | op, Val v1, Val v2 -> value (if Eval.relop ty op v1 v2 then True else False)
+  (*| op, Val v1, Val v2 -> value (if Eval.relop ty op v1 v2 then True else False)*)
   | Ne, Val (Real v), _ | Ne, _, Val (Real v) ->
     if Float.is_nan v || Float.is_infinite v then value True
     else if both_phys_eq then value False
@@ -468,7 +468,7 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
     if both_phys_eq then value False
     else if Bitvector.equal b1 b2 then relop Ty_bool Ne os1 os2
     else value True
-  | ( (LtU | LeU)
+  (*| ( (LtU | LeU)
     , Ptr { base = b1; offset = os1 }
     , Ptr { base = b2; offset = os2 } ) ->
     if both_phys_eq then value True
@@ -485,7 +485,7 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
   | op, Ptr { base; offset = { node = Val (Bitv _ as o); _ } }, Val (Bitv _ as n)
     ->
     let base = Eval.binop (Ty_bitv 32) Add (Bitv base) o in
-    value (if Eval.relop ty op base n then True else False)
+    value (if Eval.relop ty op base n then True else False)*)
   | op, List l1, List l2 -> relop_list op l1 l2
   | Gt, _, _ -> relop ty Lt hte2 hte1
   | GtU, _, _ -> relop ty LtU hte2 hte1
@@ -536,16 +536,16 @@ let rec cvtop theory op hte =
 let raw_naryop ty op es = make (Naryop (ty, op, es)) [@@inline]
 
 let naryop ty op es =
-  if List.for_all (fun e -> match view e with Val _ -> true | _ -> false) es
+  (*if List.for_all (fun e -> match view e with Val _ -> true | _ -> false) es
   then
     let vs =
       List.map (fun e -> match view e with Val v -> v | _ -> assert false) es
     in
     value (Eval.naryop ty op vs)
-  else
+  else*)
     match (ty, op, List.map view es) with
-    | ( Ty_str
-      , Concat
+    | ( Ty.Ty_str
+      , Ty.Naryop.Concat
       , [ Naryop (Ty_str, Concat, l1); Naryop (Ty_str, Concat, l2) ] ) ->
       raw_naryop Ty_str Concat (l1 @ l2)
     | Ty_str, Concat, [ Naryop (Ty_str, Concat, htes); hte ] ->
