@@ -73,6 +73,7 @@
   fmt
   fpath
   farith
+  rresult
   menhirLib
   mtime.clock
   logs
