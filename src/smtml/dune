@@ -67,6 +67,7 @@
   dolmen_model
   hc
   fpath
+  rresult
   menhirLib
   ocaml_intrinsics
   scfg
