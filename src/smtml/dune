@@ -98,6 +98,7 @@
    z3_mappings.ml
    from
    (z3 -> z3_mappings.default.ml)
+   (Z3 -> z3_mappings.default.ml)
    (-> z3_mappings.nop.ml))
   (select
    cvc5_mappings.ml
