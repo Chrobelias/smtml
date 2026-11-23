@@ -5,6 +5,8 @@
 (** @inline *)
 include Expr_intf.S
 
+val use_eval : bool ref
+
 module Smtlib : sig
   val pp : t Fmt.t
 end

@@ -23,6 +23,8 @@ and expr =
   | Concat of t * t
   | Binder of Binder.t * t list * t
 
+let use_eval = ref true
+
 module Expr = struct
   type t = expr
 
@@ -378,7 +380,7 @@ let negate_relop (hte : t) : t =
 let rec unop ty op hte =
   match (op, view hte) with
   | Ty.Unop.(Regexp_loop _ | Regexp_star), _ -> raw_unop ty op hte
-  | _, Val v -> value (Eval.unop ty op v)
+  | _, Val v when !use_eval -> value (Eval.unop ty op v)
   | Not, Unop (_, Not, hte') -> hte'
   | Neg, Unop (_, Neg, hte') -> hte'
   | Not, Binop (inner_ty, Or, a, b) ->
@@ -400,7 +402,7 @@ let rec binop ty op hte1 hte2 =
   | Select, Val (Array { ty = Ty_array (idx, _); _ }), Val _
     when Ty.is_not_canonical idx ->
     raw_binop ty op hte1 hte2
-  | op, Val v1, Val v2 -> value (Eval.binop ty op v1 v2)
+  | op, Val v1, Val v2 when !use_eval -> value (Eval.binop ty op v1 v2)
   | Sub, Ptr { base = b1; offset = os1 }, Ptr { base = b2; offset = os2 } ->
     if Bitvector.equal b1 b2 then binop ty Sub os1 os2
     else raw_binop ty op hte1 hte2
@@ -442,21 +444,21 @@ let rec binop ty op hte1 hte2 =
   | Or, _, Val True -> hte2
   | Or, Val False, _ -> hte2
   | Or, _, Val False -> hte1
-  | Add, Binop (ty, Add, x, { node = Val v1; _ }), Val v2 ->
+  | Add, Binop (ty, Add, x, { node = Val v1; _ }), Val v2 when !use_eval ->
     let v = value (Eval.binop ty Add v1 v2) in
     raw_binop ty Add x v
-  | Sub, Binop (ty, Sub, x, { node = Val v1; _ }), Val v2 ->
+  | Sub, Binop (ty, Sub, x, { node = Val v1; _ }), Val v2 when !use_eval ->
     let v = value (Eval.binop ty Add v1 v2) in
     raw_binop ty Sub x v
   | Mul, Val (Bitv bv), _ when Bitvector.eq_one bv -> hte2
   | Mul, _, Val (Bitv bv) when Bitvector.eq_one bv -> hte1
-  | Mul, Binop (ty, Mul, x, { node = Val v1; _ }), Val v2 ->
+  | Mul, Binop (ty, Mul, x, { node = Val v1; _ }), Val v2 when !use_eval ->
     let v = value (Eval.binop ty Mul v1 v2) in
     raw_binop ty Mul x v
-  | Add, Val v1, Binop (ty, Add, x, { node = Val v2; _ }) ->
+  | Add, Val v1, Binop (ty, Add, x, { node = Val v2; _ }) when !use_eval ->
     let v = value (Eval.binop ty Add v1 v2) in
     raw_binop ty Add v x
-  | Mul, Val v1, Binop (ty, Mul, x, { node = Val v2; _ }) ->
+  | Mul, Val v1, Binop (ty, Mul, x, { node = Val v2; _ }) when !use_eval ->
     let v = value (Eval.binop ty Mul v1 v2) in
     raw_binop ty Mul v x
   | At, List es, Val (Int n) ->
@@ -485,7 +487,7 @@ let triop ty op e1 e2 e3 =
   | Store, Val (Array { ty = Ty_array (idx, _); _ }), Val _, Val _
     when Ty.is_not_canonical idx ->
     raw_triop ty op e1 e2 e3
-  | op, Val v1, Val v2, Val v3 -> value (Eval.triop ty op v1 v2 v3)
+  | op, Val v1, Val v2, Val v3 when !use_eval -> value (Eval.triop ty op v1 v2 v3)
   | Ite, _, Triop (_, Ite, c2, r1, r2), Triop (_, Ite, _, _, _) ->
     let else_ = raw_triop ty Ite e1 r2 e3 in
     let cond = binop Ty_bool And e1 c2 in
@@ -513,7 +515,7 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
     | Equal -> value (match op with Ne -> False | _ -> True)
     | Different -> value (match op with Ne -> True | _ -> False)
     | Unknown -> raw_relop ty op hte1 hte2 )
-  | op, Val v1, Val v2 -> value (if Eval.relop ty op v1 v2 then True else False)
+  | op, Val v1, Val v2 when !use_eval -> value (if Eval.relop ty op v1 v2 then True else False)
   | Ne, Val (Real v), _ | Ne, _, Val (Real v) ->
     if Float.is_nan v || Float.is_infinite v then value True
     else if both_phys_eq then value False
@@ -546,7 +548,7 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
     else value True
   | ( (LtU | LeU)
     , Ptr { base = b1; offset = os1 }
-    , Ptr { base = b2; offset = os2 } ) ->
+    , Ptr { base = b2; offset = os2 } ) when !use_eval ->
     if both_phys_eq then value True
     else if Bitvector.equal b1 b2 then relop ty op os1 os2
     else
@@ -555,11 +557,11 @@ let rec relop ty (op : Ty.Relop.t) hte1 hte2 =
       value (if Eval.relop ty op b1 b2 then True else False)
   | ( op
     , Val (Bitv _ as n)
-    , Ptr { base; offset = { node = Val (Bitv _ as o); _ } } ) ->
+    , Ptr { base; offset = { node = Val (Bitv _ as o); _ } } ) when !use_eval ->
     let base = Eval.binop (Ty_bitv 32) Add (Bitv base) o in
     value (if Eval.relop ty op n base then True else False)
   | op, Ptr { base; offset = { node = Val (Bitv _ as o); _ } }, Val (Bitv _ as n)
-    ->
+    when !use_eval ->
     let base = Eval.binop (Ty_bitv 32) Add (Bitv base) o in
     value (if Eval.relop ty op base n then True else False)
   | op, List l1, List l2 -> relop_list op l1 l2
@@ -588,7 +590,7 @@ let raw_cvtop ty op hte = make (Cvtop (ty, op, hte)) [@@inline]
 let rec cvtop theory op hte =
   match (op, view hte) with
   | Ty.Cvtop.String_to_re, _ -> raw_cvtop theory op hte
-  | _, Val v -> value (Eval.cvtop theory op v)
+  | _, Val v when !use_eval -> value (Eval.cvtop theory op v)
   | ToBool, Cvtop (_, OfBool, hte) -> hte
   | OfBool, Cvtop (_, ToBool, hte) -> hte
   | String_to_float, Cvtop (Ty_real, ToString, hte) -> hte
@@ -632,7 +634,7 @@ let naryop ty op hexps =
       end
   in
 
-  match (op, extract_values [] hexps) with
+  match (op, if !use_eval then extract_values [] hexps else None) with
   | Ty.Naryop.Distinct, Some (Value.Array _ :: _ as vlist) -> (
     (* Only simplify when the arrays are known to be semantically distinct
        or not *)
